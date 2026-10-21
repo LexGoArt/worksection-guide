@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Правила роботи у Worksection</title>
+<meta name="description" content="Покрокова інструкція ГК «Доброград»: як ставити задачі у Worksection, куди їх писати, як відповідати і закривати. Один крок на екран.">
+<meta name="theme-color" content="#141B0D">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:title" content="Правила роботи у Worksection">
+<meta property="og:description" content="Покрокова інструкція для працівників ГК «Доброград»: один крок на екран, потрібне місце підсвічено.">
+<meta property="og:url" content="https://lexgoart.github.io/worksection-guide/">
+<meta property="og:image" content="https://lexgoart.github.io/worksection-guide/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap&subset=cyrillic,cyrillic-ext,latin" rel="stylesheet">
+<link rel="stylesheet" href="css/slides.css">
+<style>
+:root{
+  color-scheme: dark;
+  --a-bg:#141B0D; --a-bg-2:#1B2412; --a-bg-3:#26301F; --a-line:rgba(215,179,105,.24);
+  --a-gold:#D7B369; --a-gold-hi:#EBCF94; --a-gold-deep:#B8963F;
+  --a-ink:#1E2616; --a-text:#EDE6D0; --a-text-2:#BDB7A1; --a-muted:#9C9580;
+  --a-paper:#FBF8F0; --a-focus:#EBCF94;
+  --a-ease: cubic-bezier(.22,1,.36,1);
+  --a-bar-h: 72px;
+}
+html,body{ height:100%; margin:0; padding:0 !important; background:var(--a-bg); overflow:hidden; }
+body{ font-family:'Inter',system-ui,sans-serif; color:var(--a-text); -webkit-text-size-adjust:100%; }
+*,*::before,*::after{ box-sizing:border-box; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:3px solid var(--a-focus); outline-offset:3px; border-radius:10px; }
+.sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* ---------- app shell ---------- */
+.app{ height:100%; display:flex; flex-direction:column;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));
+  background:radial-gradient(1200px 800px at 50% 30%, #222C19 0%, var(--a-bg) 70%); }
+.progress{ position:fixed; left:0; right:0; top:0; height:3px; background:rgba(215,179,105,.12); z-index:30; }
+.progress i{ display:block; height:100%; width:0; background:var(--a-gold); transition:width .4s var(--a-ease); }
+.top{ display:none; }
+.view{ position:relative; flex:1; min-height:0; overflow:hidden; margin-top:10px; }
+.stage{ position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:0 0; }
+.stage .slide{ position:absolute !important; left:0; top:0; margin:0 !important; zoom:1 !important;
+  opacity:0; visibility:hidden; transition:opacity .28s var(--a-ease), visibility 0s linear .28s; }
+.stage .slide.on{ opacity:1; visibility:visible; z-index:2; transition:opacity .28s var(--a-ease), visibility 0s; }
+.stage .slide.instant{ transition:none !important; }
+.stage .slide .foot{ display:none; }   /* the app bar shows part + counter */
+.stage .slide .marker, .stage .slide svg.ov{ transition:opacity .18s ease-out; }
+.stage .slide.tw svg.ov:not(.tween), .stage .slide.tw .marker{ opacity:0; }
+.mshot{ display:none; }
+.loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--a-muted); font:600 15px/1 'Montserrat',sans-serif; letter-spacing:.14em; text-transform:uppercase; }
+.app.ready .loading{ display:none; }
+.app:not(.ready) .stage{ visibility:hidden; }
+
+/* bottom bar (desktop) */
+.bar{ flex:none; height:var(--a-bar-h); display:flex; align-items:center; gap:14px; padding-bottom:env(safe-area-inset-bottom, 0px); }
+.bar .grow{ flex:1; min-width:0; }
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:0 22px; border-radius:14px;
+  border:1.5px solid rgba(215,179,105,.45); background:rgba(215,179,105,.08); color:var(--a-gold-hi);
+  font:700 17px/1 'Montserrat',sans-serif; letter-spacing:.02em; cursor:pointer;
+  transition:background .15s ease-out, transform .12s ease-out, opacity .15s ease-out; }
+.btn:hover{ background:rgba(215,179,105,.16); }
+.btn:active{ transform:scale(.97); }
+.btn[disabled]{ opacity:.35; cursor:default; }
+.btn.primary{ background:var(--a-gold); color:var(--a-ink); border-color:var(--a-gold); }
+.btn.primary:hover{ background:var(--a-gold-hi); }
+.btn svg{ width:20px; height:20px; flex:none; }
+.count{ min-width:96px; text-align:center; font:700 18px/1 'Montserrat',sans-serif; color:var(--a-text); font-variant-numeric:tabular-nums; }
+.count .of{ color:var(--a-muted); font-weight:600; }
+.part{ display:flex; align-items:center; gap:10px; min-width:0; font:600 14px/1.2 'Montserrat',sans-serif; letter-spacing:.12em; text-transform:uppercase; color:rgba(235,207,148,.85); }
+.part i{ width:11px; height:11px; border-radius:50%; flex:none; background:var(--sec,#B8963F); outline:1.5px solid rgba(243,234,210,.5); outline-offset:1.5px; }
+.part span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* resume banner */
+.resume{ position:fixed; left:0; right:0; margin:0 auto; width:max-content; top:max(16px, env(safe-area-inset-top, 0px)); z-index:40; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;
+  max-width:calc(100% - 32px); padding:12px 14px 12px 20px; border-radius:16px; background:var(--a-paper); color:#23301E;
+  font:600 17px/1.3 'Inter',sans-serif; border:1px solid rgba(215,179,105,.6); }
+.resume[hidden]{ display:none; }
+.resume .btn{ min-height:42px; padding:0 16px; font-size:15px; color:#23301E; border-color:#D9C48F; background:#F4E8C8; }
+.resume .btn.primary{ background:var(--a-gold); }
+
+/* table of contents */
+.toc-back{ position:fixed; inset:0; background:rgba(8,11,5,.6); z-index:50; opacity:0; transition:opacity .25s var(--a-ease); }
+.toc{ position:fixed; top:0; bottom:0; left:0; width:min(460px, 92vw); z-index:51; background:#FBF8F0; color:#23301E; display:flex; flex-direction:column;
+  transform:translateX(-102%); transition:transform .32s var(--a-ease); padding-left:env(safe-area-inset-left, 0px); }
+.toc-open .toc{ transform:none; } .toc-open .toc-back{ opacity:1; }
+.toc[hidden], .toc-back[hidden]{ display:none; }
+.toc header{ display:flex; align-items:center; justify-content:space-between; padding:22px 20px 14px 24px; border-bottom:1px solid #E6DEC9; }
+.toc h2{ margin:0; font:800 24px/1 'Montserrat',sans-serif; }
+.toc .x{ width:48px; height:48px; border-radius:12px; border:1.5px solid #DCD2B6; background:#fff; color:#23301E; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.toc .x svg{ width:22px; height:22px; }
+.toc nav{ overflow:auto; padding:8px 12px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.toc .grp{ margin:14px 0 4px; }
+.toc .gh{ display:flex; align-items:center; gap:10px; padding:8px 12px; font:700 13px/1.3 'Montserrat',sans-serif; letter-spacing:.14em; text-transform:uppercase; color:#6B6553; }
+.toc .gh i{ width:10px; height:10px; border-radius:50%; background:var(--c); flex:none; }
+.toc .grp.cur .gh{ color:var(--ct); }
+.toc button.it{ display:flex; gap:12px; width:100%; text-align:left; padding:11px 12px; border:0; border-radius:12px; background:none; cursor:pointer; font:500 17px/1.35 'Inter',sans-serif; color:#23301E; }
+.toc button.it:hover{ background:#F1EAD6; }
+.toc button.it .no{ flex:none; width:30px; font:700 14px/1.6 'Montserrat',sans-serif; color:#8C8672; font-variant-numeric:tabular-nums; }
+.toc button.it[aria-current="step"]{ background:#F4E8C8; font-weight:650; }
+.toc .grp.cur{ background:linear-gradient(90deg, rgba(215,179,105,.14), rgba(215,179,105,0)); border-radius:14px; }
+
+/* ================= MOBILE / PORTRAIT ================= */
+.app.is-m{ --a-bar-h:0px; }
+.is-m .top{ display:flex; align-items:center; gap:12px; flex:none; padding-top:max(12px, env(safe-area-inset-top, 0px)); padding-bottom:8px; }
+.is-m .top .part{ flex:1; font-size:12px; }
+.is-m .top .btn{ min-height:44px; padding:0 14px; font-size:15px; }
+.is-m .bar .part, .is-m .bar .tocb, .is-m .bar .grow{ display:none; }
+.is-m .bar{ position:fixed; left:0; right:0; bottom:0; z-index:20; height:auto; justify-content:space-between;
+  padding:10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background:rgba(18,24,9,.96); border-top:1px solid var(--a-line); }
+.is-m .bar .btn{ flex:1 1 0; min-width:0; max-width:200px; min-height:52px; padding:0 12px; }
+.is-m .count{ min-width:64px; font-size:17px; }
+.is-m .view{ overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; margin-top:0;
+  padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); }
+.is-m .stage{ position:relative; width:auto; height:auto; transform:none !important; max-width:680px; margin:0 auto; }
+.is-m .stage .slide{ position:relative !important; display:none; width:auto; height:auto; overflow:visible; background:none !important;
+  opacity:1; visibility:visible; transition:none; }
+.is-m .stage .slide.on{ display:block; animation:mIn .24s var(--a-ease); }
+@keyframes mIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+.is-m .slide .foot, .is-m .slide .band{ display:none !important; }
+.is-m .stage .slide.paper, .is-m .stage .slide.section{ background:#F5F0E3 !important; border-radius:18px; padding:18px 16px 22px; margin-top:4px; }
+.is-m .stage .slide.section{ padding-top:16px; }
+.is-m .kicker{ font-size:13px; gap:10px; letter-spacing:.14em; }
+
+/* spot */
+.is-m .spot .viewport, .is-m .spot svg.ov, .is-m .spot .marker{ display:none !important; }
+.is-m .mshot{ display:block; position:relative; width:100%; overflow:hidden; border-radius:14px; background:#0d1207; border:1px solid var(--a-line); }
+.mshot img{ position:absolute; display:block; max-width:none; }
+.mshot svg{ position:absolute; inset:0; width:100%; height:100%; }
+.is-m .spot .card{ position:relative !important; left:auto !important; top:auto !important; width:auto !important; margin-top:14px; padding:20px 20px 18px; border-radius:18px; }
+.is-m .card.wide{ display:flex; flex-direction:column; }
+.is-m .card.wide .colA, .is-m .card.wide .colB{ display:contents; }
+.is-m .card .cfoot{ order:9; margin-top:18px; }
+.is-m .card h2{ font-size:24px; margin:10px 0 12px; }
+.is-m .card .body{ font-size:17.5px; line-height:1.55; }
+.is-m .action{ font-size:17px; gap:12px; margin-top:16px !important; padding:10px 14px 10px 10px; border-radius:14px; }
+.is-m .action .ic{ width:38px; height:38px; } .is-m .action .ic svg{ width:20px; height:20px; }
+.is-m .tip{ font-size:16px; margin-top:16px !important; padding-top:14px !important; gap:10px; }
+.is-m .tip .ic{ width:24px; height:24px; font-size:13px; }
+.is-m .dots i{ width:8px; height:8px; } .is-m .dots i.on{ width:24px; }
+.is-m .n{ width:1.35em; height:1.35em; }
+
+/* cover */
+.is-m .cover .frame, .is-m .cover .wm{ display:none; }
+.is-m .cover{ padding:28px 4px 8px; }
+.is-m .cover .inner, .is-m .cover .hint, .is-m .cover .ver{ position:static; width:auto; }
+.is-m .cover .logo{ height:46px; }
+.is-m .cover .kick{ margin-top:36px; font-size:13px; gap:12px; } .is-m .cover .kick::before{ width:32px; }
+.is-m .cover h1{ font-size:36px; margin-top:18px; }
+.is-m .cover .sub{ font-size:25px; margin-top:16px; }
+.is-m .cover .lead{ font-size:17.5px; margin-top:14px; }
+.is-m .cover .hint{ margin-top:30px; font-size:17px; gap:14px; }
+.is-m .cover .key{ width:46px; height:46px; border-radius:12px; }
+.is-m .cover .ver{ margin-top:22px; font-size:12px; }
+
+/* section divider */
+.is-m .section .panel{ position:relative; width:auto; height:170px; border-radius:14px; }
+.is-m .section .plabel{ left:22px; top:22px; font-size:13px; }
+.is-m .section .num{ left:auto; right:22px; bottom:12px; font-size:170px !important; }
+.is-m .section .pwm{ height:220px; width:243px; left:-40px; right:auto; top:-30px; }
+.is-m .section .right{ position:static; padding:20px 2px 4px; }
+.is-m .section .of{ font-size:12px; }
+.is-m .section h1{ font-size:30px; margin-top:14px; }
+.is-m .section .rule{ margin:18px 0 16px; }
+.is-m .section .lead{ font-size:18px; }
+.is-m .section .inlist{ margin-top:24px; } .is-m .section .inlist .lab{ font-size:12px; margin-bottom:12px; }
+.is-m .section .inlist ol{ gap:12px; } .is-m .section .inlist li{ font-size:17.5px; gap:14px; } .is-m .section .inlist li .i{ width:28px; font-size:15px; }
+
+/* paper kinds */
+.is-m .paper{ display:block; }
+.is-m .paper .hd h1{ font-size:27px; margin-top:12px; }
+.is-m .paper .hd .lead{ font-size:17.5px; margin-top:12px; }
+.is-m .paper .content{ display:block; padding-top:20px; }
+.is-m .paper .cin{ zoom:1 !important; }
+.is-m .paper .after{ flex-direction:column; align-items:stretch; gap:14px; margin-top:18px; }
+.is-m .cmp{ grid-template-columns:1fr; gap:16px; }
+.is-m .cmp .col{ padding:20px 16px; border-radius:18px; }
+.is-m .cmp .ch{ font-size:22px; margin-bottom:16px; gap:12px; } .is-m .cmp .badge{ width:40px; height:40px; }
+.is-m .cmp li{ font-size:17px; padding:14px; gap:12px; } .is-m .cmp li .m{ width:24px; height:24px; } .is-m .cmp li .note{ font-size:15.5px; }
+.is-m .flow{ flex-direction:column; align-items:stretch; }
+.is-m .flow .st{ width:100%; }
+.is-m .flow .idx{ font-size:13px; margin-bottom:8px; }
+.is-m .flow .box{ min-height:60px; font-size:20px !important; border-radius:16px; padding:14px; }
+.is-m .flow .sub{ font-size:17px; margin-top:8px; max-width:none; }
+.is-m .flow .ar{ width:auto; height:44px; margin:2px 0; transform:rotate(90deg); }
+.is-m .grid .gc{ flex-basis:100% !important; padding:26px 18px 18px; border-radius:18px; }
+.is-m .grid{ gap:14px; }
+.is-m .grid .gc h3{ font-size:21px; } .is-m .grid .gc .gs{ font-size:16px; } .is-m .grid .gc li{ font-size:17px; }
+.is-m .grid .gc ul{ margin-top:14px; padding-top:12px; }
+.is-m .chk{ grid-template-columns:1fr !important; grid-template-rows:none !important; grid-auto-flow:row !important; gap:10px; }
+.is-m .chk li{ font-size:17.5px !important; padding:14px !important; gap:14px; border-radius:14px; }
+.is-m .chk .box{ width:32px; height:32px; border-radius:9px; } .is-m .chk .no{ width:auto; font-size:14px; }
+.is-m .tpl{ width:auto; }
+.is-m .tpl .sheet{ padding:20px 18px; } .is-m .tpl .sheet2{ display:none; } .is-m .tpl .fold{ width:34px; height:34px; }
+.is-m .tpl .meta{ font-size:15.5px; padding:10px 14px; margin-bottom:10px; }
+.is-m .tpl dl{ grid-template-columns:1fr; }
+.is-m .tpl dt{ font-size:16.5px; padding:14px 0 2px; border-bottom:0; }
+.is-m .tpl dd{ font-size:17px; padding:0 0 14px; }
+.is-m .tpl dl > dd:last-child{ border-bottom:0; }
+.is-m .statement .inner{ position:static; padding:48px 6px 24px; }
+.is-m .statement h1{ font-size:29px; margin-top:20px; }
+.is-m .statement .rule{ margin:24px auto; }
+.is-m .statement .lead{ font-size:18px; }
+.is-m .statement .seal{ height:56px; width:62px; }
+.is-m .statement .kicker{ margin-top:22px; }
+.is-m .paper .action, .is-m .statement .action{ font-size:17px; }
+
+
+.pdfl{ flex:none; font:600 14px/1 'Inter',sans-serif; color:var(--a-gold-hi); text-decoration:underline; text-underline-offset:3px; text-decoration-color:rgba(235,207,148,.45); padding:10px 6px; border-radius:8px; }
+.pdfl:hover{ text-decoration-color:var(--a-gold-hi); }
+.toc .toc-pdf{ display:block; margin:0 24px calc(18px + env(safe-area-inset-bottom, 0px)); padding:14px 0 0; border-top:1px solid #E6DEC9; color:#7A5A1C; font-size:16px; }
+.is-m .bar .pdfl{ display:none; }
+@media (max-width:1100px){ .bar .pdfl{ display:none; } }
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="progress" aria-hidden="true"><i id="progressFill"></i></div>
+  <header class="top">
+    <button class="btn tocb" type="button" data-toc aria-label="Відкрити зміст" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Зміст</button>
+    <span class="part" data-part><i></i><span></span></span>
+  </header>
+  <main class="view" id="view" aria-label="Слайд інструкції">
+    <div class="loading" aria-hidden="true">Завантаження…</div>
+    <div class="stage" id="deck"></div>
+  </main>
+  <nav class="bar" aria-label="Навігація по кроках">
+    <button class="btn tocb" type="button" data-toc aria-label="Відкрити зміст" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Зміст</button>
+    <span class="part grow" data-part><i></i><span></span></span>
+    <a class="pdfl" href="./Worksection_%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0.pdf" download>Завантажити PDF</a>
+    <button class="btn" type="button" id="prev" aria-label="Попередній крок">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Назад</button>
+    <span class="count" id="count" aria-live="off">1 <span class="of">/ 1</span></span>
+    <button class="btn primary" type="button" id="next" aria-label="Наступний крок">Далі
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </nav>
+</div>
+
+<div class="resume" id="resume" role="region" aria-label="Продовжити перегляд" hidden>
+  <span id="resumeText">Продовжити з кроку 1?</span>
+  <button class="btn primary" type="button" id="resumeYes">Продовжити</button>
+  <button class="btn" type="button" id="resumeNo">З початку</button>
+</div>
+
+<div class="toc-back" id="tocBack" hidden></div>
+<aside class="toc" id="toc" role="dialog" aria-modal="true" aria-labelledby="tocTitle" hidden>
+  <header><h2 id="tocTitle">Зміст</h2>
+    <button class="x" type="button" id="tocClose" aria-label="Закрити зміст">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+  </header>
+  <nav id="tocList" aria-label="Частини і кроки"></nav>
+  <a class="pdfl toc-pdf" href="./Worksection_%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0.pdf" download>Завантажити PDF</a>
+</aside>
+
+<div class="sr" aria-live="polite" id="live"></div>
+
+<script>window.DG_WEB = true; window.DG_LOGO = 'img/logo.svg';</script>
+<script src="js/shots.js"></script>
+<script src="js/storyboard.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
