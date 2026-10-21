@@ -471,14 +471,14 @@
       // rings: the faint halo is clipped to the view so it never runs off the screen edge
       var cid = 'v' + ctx.i;
       var svg = '<svg class="ov" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="' + cid + '"><rect x="' + v.x + '" y="' + v.y + '" width="' + v.w + '" height="' + v.h + '"/></clipPath></defs>' +
-        '<path d="' + dPath + '" fill="rgb(11,15,6)" fill-opacity="' + dim + '" fill-rule="evenodd"/>' + edge +
+        '<path class="dim" d="' + dPath + '" fill="rgb(11,15,6)" fill-opacity="' + dim + '" fill-rule="evenodd"/>' + edge +
         '<g clip-path="url(#' + cid + ')">' + G.holes.map(function (h) {
-          return '<rect x="' + (h.x - HALO) + '" y="' + (h.y - HALO) + '" width="' + (h.w + 2 * HALO) + '" height="' + (h.h + 2 * HALO) + '" rx="' + (12 + HALO) + '" fill="none" stroke="#D7B369" stroke-opacity=".3" stroke-width="1.5"/>';
+          return '<rect x="' + (h.x - HALO) + '" y="' + (h.y - HALO) + '" width="' + (h.w + 2 * HALO) + '" height="' + (h.h + 2 * HALO) + '" rx="' + (12 + HALO) + '" class="halo" fill="none" stroke="#D7B369" stroke-opacity=".3" stroke-width="1.5"/>';
         }).join('') + '</g>' +
         G.holes.map(function (h) {
           var small = h.w * h.h < 260 * 90, o3 = HALO + 9;
-          return (small ? '<rect x="' + (h.x - o3) + '" y="' + (h.y - o3) + '" width="' + (h.w + 2 * o3) + '" height="' + (h.h + 2 * o3) + '" rx="' + (12 + o3) + '" fill="none" stroke="#D7B369" stroke-opacity=".2" stroke-width="2" clip-path="url(#' + cid + ')"/>' : '') +
-            '<rect x="' + (h.x - RING) + '" y="' + (h.y - RING) + '" width="' + (h.w + 2 * RING) + '" height="' + (h.h + 2 * RING) + '" rx="' + (12 + RING) + '" fill="none" stroke="#EBCF94" stroke-width="' + (small ? 4 : 3) + '"/>' +
+          return (small ? '<rect x="' + (h.x - o3) + '" y="' + (h.y - o3) + '" width="' + (h.w + 2 * o3) + '" height="' + (h.h + 2 * o3) + '" rx="' + (12 + o3) + '" class="halo" fill="none" stroke="#D7B369" stroke-opacity=".2" stroke-width="2" clip-path="url(#' + cid + ')"/>' : '') +
+            '<rect x="' + (h.x - RING) + '" y="' + (h.y - RING) + '" width="' + (h.w + 2 * RING) + '" height="' + (h.h + 2 * RING) + '" rx="' + (12 + RING) + '" class="ring" fill="none" stroke="#EBCF94" stroke-width="' + (small ? 4 : 3) + '"/>' +
             (small ? '' : '');
         }).join('') + '<g class="lead"></g></svg>';
       n.insertBefore(wrap, card);

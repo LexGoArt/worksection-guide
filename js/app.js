@@ -20,6 +20,8 @@
   var resume = document.getElementById('resume');
 
   var nodes = [], slides = [], cur = -1, total = 0, wide = true, anim = null, lastFocus = null;
+  var bds = [].slice.call(document.querySelectorAll('canvas.bd:not(.edge)')), tops = [].slice.call(document.querySelectorAll('canvas.bd.edge')), bdi = 0, bdTimer = 0, st = { k: 1, x: 0, y: 0 };
+  var lastSec = null;
   var reduce = false;
   try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
@@ -51,6 +53,7 @@
       if (vi && n._spot) vi.alt = 'Знімок екрана Worksection: ' + (n._spot.alt || titleOf(i));
       if (n._spot) n.insertBefore(mobileShot(n), n.firstChild);
       n.setAttribute('aria-hidden', 'true');
+      indexAnims(n);
       n.setAttribute('aria-label', 'Крок ' + (i + 1) + ' з ' + total + ': ' + titleOf(i));
     });
     buildToc();
@@ -84,15 +87,19 @@
     if (isWide !== wide || !app.classList.contains('mode-set')) {
       wide = isWide;
       app.classList.toggle('is-m', !wide);
+      document.body.classList.toggle('m-mode', !wide);
       app.classList.add('mode-set');
     }
     fit();
+    if (cur >= 0) paintBackdrop(nodes[cur], true);
   }
   function fit() {
     if (!wide) { deck.style.transform = ''; return; }
     var vw = view.clientWidth, vh = view.clientHeight;
     var k = Math.min(vw / W, vh / H);
-    var x = (vw - W * k) / 2, y = (vh - H * k) / 2;
+    k = Math.floor(W * k) / W;                       // whole-pixel stage width: no anti-aliased seam at the edges
+    var x = Math.round((vw - W * k) / 2), y = Math.round((vh - H * k) / 2);
+    st.k = k; st.x = x; st.y = y;
     deck.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k + ')';
   }
 
@@ -109,7 +116,8 @@
     cur = j;
     var A = from >= 0 ? nodes[from] : null, B = nodes[j];
     var instant = opts.instant || reduce || !wide || !A;
-    if (A && !instant && canGlide(A, B)) glide(A, B);
+    var glided = false;
+    if (A && !instant && canGlide(A, B)) { glide(A, B); glided = true; }
     else {
       if (instant) { B.classList.add('instant'); if (A) A.classList.add('instant'); }
       if (A) { A.classList.remove('on'); A.setAttribute('aria-hidden', 'true'); }
@@ -117,6 +125,8 @@
       if (instant) { void B.offsetWidth; B.classList.remove('instant'); if (A) A.classList.remove('instant'); }
     }
     B.setAttribute('aria-hidden', 'false');
+    enter(B, glided);
+    paintBackdrop(B, instant || !A);
     if (!wide) view.scrollTop = 0;
     updateUi();
     setHash(j);
@@ -131,9 +141,11 @@
     fill.style.width = (total > 1 ? (cur / (total - 1)) * 100 : 100) + '%';
     var sec = sectionOf(cur);
     var color = sec ? DGRender.secColor(sec) : '#B8963F';
+    var secChanged = lastSec !== (sec ? sec.id : '_'); lastSec = sec ? sec.id : '_';
     document.querySelectorAll('[data-part]').forEach(function (p) {
       p.style.setProperty('--sec', color);
       p.querySelector('span').textContent = sec ? 'Частина ' + sec.num + ' · ' + sec.title : 'Правила роботи у Worksection';
+      if (secChanged && !reduce) { p.classList.remove('chg'); void p.offsetWidth; p.classList.add('chg'); }
     });
     tocList.querySelectorAll('button.it').forEach(function (b) {
       if (+b.dataset.i === cur) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
@@ -172,13 +184,14 @@
 
   /* ---------------- table of contents ---------------- */
   function buildToc() {
-    var html = '', curSec = null, open = false;
+    var html = '', curSec = null, open = false, gi = -1;
     slides.forEach(function (s, i) {
       var key = s.section || '_start';
       if (key !== curSec) {
         if (open) html += '</div>';
         var sec = sectionOf(i), c = sec ? DGRender.secColor(sec) : '#B8963F';
-        html += '<div class="grp" data-sec="' + esc(key) + '" style="--c:' + c + ';--ct:' + DGRender.textTone(c) + '"><div class="gh"><i></i>' +
+        gi++;
+        html += '<div class="grp" data-sec="' + esc(key) + '" style="--gi:' + Math.min(gi, 12) + ';--c:' + c + ';--ct:' + DGRender.textTone(c) + '"><div class="gh"><i></i>' +
           (sec ? 'Частина ' + esc(sec.num) + ' · ' + esc(sec.title) : 'Початок') + '</div>';
         curSec = key; open = true;
       }
@@ -243,10 +256,10 @@
     }
     var d = 'M' + c.x + ' ' + c.y + 'h' + c.w + 'v' + c.h + 'h' + (-c.w) + 'Z' + holes.map(function (h) { return rr(h, rx); }).join('');
     var svg = '<svg viewBox="' + c.x + ' ' + c.y + ' ' + c.w + ' ' + c.h + '" preserveAspectRatio="none" aria-hidden="true">' +
-      '<path d="' + d + '" fill="rgb(11,15,6)" fill-opacity=".66" fill-rule="evenodd"/>' +
+      '<path class="dim" d="' + d + '" fill="rgb(11,15,6)" fill-opacity=".66" fill-rule="evenodd"/>' +
       holes.map(function (h) {
         var o = ring;
-        return '<rect x="' + (h.x - o) + '" y="' + (h.y - o) + '" width="' + (h.w + 2 * o) + '" height="' + (h.h + 2 * o) + '" rx="' + (rx + o) + '" fill="none" stroke="#EBCF94" stroke-width="2.5" vector-effect="non-scaling-stroke"/>';
+        return '<rect x="' + (h.x - o) + '" y="' + (h.y - o) + '" width="' + (h.w + 2 * o) + '" height="' + (h.h + 2 * o) + '" rx="' + (rx + o) + '" class="ring" fill="none" stroke="#EBCF94" stroke-width="2.5" vector-effect="non-scaling-stroke"/>';
       }).join('');
     if (holes.length > 1) {
       var r = 3.6 * u;
@@ -254,8 +267,8 @@
         // badge on the outer top-left corner of the ring, kept inside the crop
         var cx = Math.max(c.x + r + u, Math.min(c.x + c.w - r - u, h.x - ring));
         var cy = Math.max(c.y + r + u, Math.min(c.y + c.h - r - u, h.y - ring));
-        svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#D7B369" stroke="#1B2412" stroke-width="2" vector-effect="non-scaling-stroke"/>' +
-          '<text x="' + cx + '" y="' + (cy + r * .38) + '" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="' + (r * 1.1) + '" fill="#1B2412">' + (i + 1) + '</text>';
+        svg += '<g class="mk" style="--i:' + i + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#D7B369" stroke="#1B2412" stroke-width="2" vector-effect="non-scaling-stroke"/>' +
+          '<text x="' + cx + '" y="' + (cy + r * .38) + '" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="800" font-size="' + (r * 1.1) + '" fill="#1B2412">' + (i + 1) + '</text></g>';
       });
     }
     svg += '</svg>';
@@ -323,9 +336,143 @@
       if (tw.parentNode) tw.parentNode.removeChild(tw);
       if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
       B.classList.remove('tw');
+      if (!reduce && B.classList.contains('on')) { B.classList.remove('enter-ring'); void B.offsetWidth; B.classList.add('enter-ring'); }
       anim = null;
     }
     anim = { finish: finish };
     raf = requestAnimationFrame(frame);
+    setTimeout(finish, DUR + 120);   // safety net: background tabs pause requestAnimationFrame
+  }
+
+  /* ---------------- entrance motion ---------------- */
+  function indexAnims(n) {
+    function idx(sel, off) { n.querySelectorAll(sel).forEach(function (e, i) { e.style.setProperty('--i', i + (off || 0)); }); }
+    idx('.card .kicker, .card h2, .card .body, .card .action, .card .tip, .card .cfoot');
+    idx('.stage .slide > .marker'); idx(':scope > .marker');
+    n.querySelectorAll('.card .n').forEach(function (e) { e.style.setProperty('--i', Math.max(0, (parseInt(e.textContent, 10) || 1) - 1)); });
+    ['.grid .gc', '.cmp .col', '.chk li', '.flow .st', '.section .inlist li', '.inlist li'].forEach(function (sel) { idx(sel); });
+    idx('.flow .ar', .5);
+    n.querySelectorAll('.tpl dt').forEach(function (e, i) { e.style.setProperty('--i', i); if (e.nextElementSibling) e.nextElementSibling.style.setProperty('--i', i); });
+  }
+  function enter(B, glided) {
+    nodes.forEach(function (n) { if (n !== B) n.classList.remove('enter', 'enter-ring'); });
+    B.classList.remove('enter', 'enter-ring');
+    if (glided) return;               // the glide finishes with the ring/marker sequence
+    void B.offsetWidth;
+    B.classList.add('enter');         // with reduced motion the CSS shows the final state at once
+  }
+
+  /* ---------------- full-window backdrop (no seams around the 16:9 stage) ---------------- */
+  function paintBackdrop(n, instant) {
+    if (!wide || bds.length < 2 || !n) return;
+    var vi = n._spot && n.querySelector('.viewport img');
+    if (vi && !(vi.complete && vi.naturalWidth)) {   // repaint the screen's edges once its image has decoded
+      vi.addEventListener('load', function () { if (nodes[cur] === n) paintBackdrop(n, true); }, { once: true });
+    }
+    var next = bds[bdi ^ 1], prev = bds[bdi], nextT = tops[bdi ^ 1], prevT = tops[bdi];
+    try { drawBackdrop(next, n, nextT); } catch (e) { return; }
+    clearTimeout(bdTimer);
+    next.style.zIndex = '0'; prev.style.zIndex = '-1';
+    if (instant || reduce) {
+      [next, nextT].forEach(function (cv) { if (!cv) return; cv.style.transition = 'none'; cv.classList.add('show'); void cv.offsetWidth; cv.style.transition = ''; });
+      prev.classList.remove('show'); if (prevT) prevT.classList.remove('show');
+    } else {
+      next.classList.add('show'); if (nextT) nextT.classList.add('show');
+      if (prevT) prevT.classList.remove('show');
+      bdTimer = setTimeout(function () { prev.classList.remove('show'); }, 360);
+    }
+    bdi ^= 1;
+  }
+  function drawBackdrop(cv, n, top) {
+    var dpr = Math.min(2, window.devicePixelRatio || 1), w = window.innerWidth, h = window.innerHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var t = null;
+    if (top) { top.width = cv.width; top.height = cv.height; t = top.getContext('2d'); t.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    var vr = view.getBoundingClientRect(), X = vr.left + st.x, Y = vr.top + st.y, k = st.k;
+    function SX(p) { return X + p * k; } function SY(p) { return Y + p * k; }
+    function rad(px, py, rx, ry, stops) {   // same ellipse as the CSS radial-gradient on the slide
+      var cx = SX(px * W), cy = SY(py * H); rx *= k; ry *= k;
+      c.save(); c.translate(cx, cy); c.scale(1, ry / rx);
+      var g = c.createRadialGradient(0, 0, 0, 0, 0, rx);
+      stops.forEach(function (s) { g.addColorStop(s[0], s[1]); });
+      c.fillStyle = g; c.fillRect(-cx, -cy * rx / ry, w, h * rx / ry); c.restore();
+    }
+    var cl = n.classList;
+    if (cl.contains('cover')) rad(.22, .18, 1400, 1000, [[0, '#2D3924'], [.48, '#1E2716'], [1, '#131A0C']]);
+    else if (cl.contains('statement')) rad(.5, .3, 1300, 900, [[0, '#2B3622'], [.55, '#1C2514'], [1, '#131A0C']]);
+    else if (cl.contains('paper')) rad(.8, -.1, 1500, 900, [[0, '#FBF7EC'], [.55, '#F5F0E3'], [1, '#EFE8D6']]);
+    else if (cl.contains('section')) {
+      c.fillStyle = '#F5F0E3'; c.fillRect(0, 0, w, h);
+      var px = SX(720); c.fillStyle = (getComputedStyle(n).getPropertyValue('--sec') || '#B8963F').trim(); c.fillRect(0, 0, px, h);
+      var a = 160 * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), L = (720 * Math.abs(dx) + 1080 * Math.abs(dy)) * k, cx = SX(360), cy = SY(540);
+      var g = c.createLinearGradient(cx - dx * L / 2, cy - dy * L / 2, cx + dx * L / 2, cy + dy * L / 2);
+      g.addColorStop(0, 'rgba(255,255,255,.10)'); g.addColorStop(.4, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.22)');
+      c.fillStyle = g; c.fillRect(0, 0, px, h);
+    } else if (cl.contains('spot')) {
+      rad(.5, .4, 1200, 900, [[0, '#26301F'], [.6, '#1B2412'], [1, '#141B0D']]);
+      spotEdges(c, n, SX, SY, w, h, X, Y, k, t);
+    } else { c.fillStyle = '#141B0D'; c.fillRect(0, 0, w, h); }
+  }
+  function spotEdges(c, n, SX, SY, w, h, X, Y, k, t) {
+    var G = n._geom, sp = n._spot, img = n.querySelector('.viewport img');
+    if (G && sp && img && img.naturalWidth) {
+      var v = G.view, I = G.img, nw = sp.nw, nh = sp.nh;
+      var dEl = n.querySelector('svg.ov .dim'), dim = dEl ? +dEl.getAttribute('fill-opacity') : .7;
+      function nx(x) { return Math.max(0, Math.min(nw - 1, (x - I.x) / I.w * nw)); }
+      function ny(y) { return Math.max(0, Math.min(nh - 1, (y - I.y) / I.h * nh)); }
+      // the screenshot's outermost pixels, stretched into the margin and dimmed like the stage
+      // a soft (step-wise averaged) copy of a thin strip at the screen's edge, so text does not smear into streaks
+      function soft(sx, sy, sw, sh, tw, th) {
+        var src = img, x = sx, y = sy, cw = sw, ch = sh, cv = null;
+        while (cw > tw || ch > th) {
+          var nw2 = Math.max(tw, Math.ceil(cw / 2)), nh2 = Math.max(th, Math.ceil(ch / 2));
+          var t = document.createElement('canvas'); t.width = nw2; t.height = nh2;
+          var tc = t.getContext('2d'); tc.imageSmoothingQuality = 'high';
+          tc.drawImage(src, x, y, cw, ch, 0, 0, nw2, nh2);
+          src = t; cv = t; x = 0; y = 0; cw = nw2; ch = nh2;
+        }
+        return cv || src;
+      }
+      var P = Math.max(3, Math.round(5 * k));   // the band also covers the screen's outermost pixels (on the top layer)
+      function paint(ctx, s2, dx, dy, dw, dh) {
+        // whole-pixel rectangles: neighbouring bands meet without anti-aliased (half-dimmed) seams
+        var x2 = Math.round(dx + dw), y2 = Math.round(dy + dh); dx = Math.round(dx); dy = Math.round(dy); dw = x2 - dx; dh = y2 - dy;
+        if (dw <= 0 || dh <= 0) return;
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(s2, 0, 0, s2.width, s2.height, dx, dy, dw, dh);
+        ctx.fillStyle = 'rgba(11,15,6,' + dim + ')'; ctx.fillRect(dx, dy, dw, dh);
+      }
+      function band(sx, sy, sw, sh, tw, th, dx, dy, dw, dh, side) {
+        if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
+        var s2 = soft(sx, sy, sw, sh, tw, th);
+        paint(c, s2, dx, dy, dw, dh);
+        if (!t || !side) return;
+        // extend the same soft band P px into the stage and keep only that sliver: hides the screenshot's own edge pixels
+        var ex = dx, ey = dy, ew = dw, eh = dh, cx = 0, cy = 0, cw = 0, ch = 0;
+        if (side === 'L') { ew = dw + P; cx = dx + dw - 1; cy = dy; cw = P + 1; ch = dh; }
+        if (side === 'R') { ex = dx - P; ew = dw + P; cx = dx - P; cy = dy; cw = P + 1; ch = dh; }
+        if (side === 'T') { eh = dh + P; cx = dx; cy = dy + dh - 1; cw = dw; ch = P + 1; }
+        if (side === 'B') { ey = dy - P; eh = dh + P; cx = dx; cy = dy - P; cw = dw; ch = P + 1; }
+        t.save(); t.beginPath(); t.rect(Math.round(cx), Math.round(cy), Math.round(cw), Math.round(ch)); t.clip(); paint(t, s2, ex, ey, ew, eh); t.restore();
+      }
+      var right = SX(W), L = v.x <= .5 && X > .5, R = v.x + v.w >= W - .5 && right < w - .5, T = v.y <= .5 && Y > .5;
+      var y0 = ny(v.y), y1 = ny(v.y + v.h), x0 = nx(v.x), x1 = nx(v.x + v.w), E = 10;
+      var rows = Math.max(3, Math.round((y1 - y0) / 40)), cols = Math.max(3, Math.round((x1 - x0) / 40));
+      if (L) band(x0, y0, Math.min(E, x1 - x0), y1 - y0, 1, rows, 0, SY(v.y), X, v.h * k, 'L');
+      if (R) band(Math.max(x0, x1 - E), y0, Math.min(E, x1 - x0), y1 - y0, 1, rows, right, SY(v.y), w - right, v.h * k, 'R');
+      if (T) {
+        band(x0, y0, x1 - x0, Math.min(E, y1 - y0), cols, 1, SX(v.x), 0, v.w * k, Y, 'T');
+        if (L) band(x0, y0, E, E, 1, 1, 0, 0, X, Y);
+        if (R) band(x1 - E, y0, E, E, 1, 1, right, 0, w - right, Y);
+      }
+      // below the screen (the slide's own footer band is hidden on the web): continue the bottom edge down to the bar
+      var B = v.y + v.h >= 1024 - .5, by = SY(v.y + v.h);
+      if (B && by < h) {
+        band(x0, Math.max(y0, y1 - E), x1 - x0, Math.min(E, y1 - y0), cols, 1, SX(v.x), by, v.w * k, h - by, 'B');
+        if (L) band(x0, y1 - E, E, E, 1, 1, 0, by, X, h - by);
+        if (R) band(x1 - E, y1 - E, E, E, 1, 1, right, by, w - right, h - by);
+      }
+    }
   }
 })();

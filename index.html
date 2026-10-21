@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap&subset=cyrillic,cyrillic-ext,latin" rel="stylesheet">
-<link rel="stylesheet" href="css/slides.css">
+<link rel="stylesheet" href="css/slides.css?v=9ba6aadc6e">
 <style>
 :root{
   color-scheme: dark;
@@ -30,7 +30,8 @@
   --a-ease: cubic-bezier(.22,1,.36,1);
   --a-bar-h: 72px;
 }
-html,body{ height:100%; margin:0; padding:0 !important; background:var(--a-bg); overflow:hidden; }
+html,body{ height:100%; margin:0; padding:0 !important; overflow:hidden; }
+html{ background:var(--a-bg) !important; } body{ background:transparent !important; }
 body{ font-family:'Inter',system-ui,sans-serif; color:var(--a-text); -webkit-text-size-adjust:100%; }
 *,*::before,*::after{ box-sizing:border-box; }
 button{ font:inherit; color:inherit; }
@@ -38,13 +39,22 @@ button{ font:inherit; color:inherit; }
 .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
 /* ---------- app shell ---------- */
-.app{ height:100%; display:flex; flex-direction:column;
-  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));
+.app{ position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+.app.is-m{ padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));
   background:radial-gradient(1200px 800px at 50% 30%, #222C19 0%, var(--a-bg) 70%); }
+/* full-window backdrop that continues the current slide's background past the 16:9 stage (two layers crossfade) */
+canvas.bd{ position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:0; opacity:0; transition:opacity .32s var(--a-ease); pointer-events:none; }
+canvas.bd.show{ opacity:1; }
+canvas.bd.edge{ z-index:2 !important; }   /* thin slivers over the stage edges only */
+.toc-back, .toc, .resume{ z-index:60; } .toc{ z-index:61; }
+body.m-mode canvas.bd{ display:none; }
+.app:not(.is-m) .stage .slide{ background:transparent !important; }
+.app:not(.is-m) .spot .band{ display:none; }   /* the continued screenshot meets the bar directly */
+.app:not(.is-m) .cover .wm{ right:70px; top:150px; height:780px; width:860px; }   /* watermark stays inside the gold frame */
 .progress{ position:fixed; left:0; right:0; top:0; height:3px; background:rgba(215,179,105,.12); z-index:30; }
 .progress i{ display:block; height:100%; width:0; background:var(--a-gold); transition:width .4s var(--a-ease); }
 .top{ display:none; }
-.view{ position:relative; flex:1; min-height:0; overflow:hidden; margin-top:10px; }
+.view{ position:relative; flex:1; min-height:0; overflow:hidden; }
 .stage{ position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:0 0; }
 .stage .slide{ position:absolute !important; left:0; top:0; margin:0 !important; zoom:1 !important;
   opacity:0; visibility:hidden; transition:opacity .28s var(--a-ease), visibility 0s linear .28s; }
@@ -59,7 +69,9 @@ button{ font:inherit; color:inherit; }
 .app:not(.ready) .stage{ visibility:hidden; }
 
 /* bottom bar (desktop) */
-.bar{ flex:none; height:var(--a-bar-h); display:flex; align-items:center; gap:14px; padding-bottom:env(safe-area-inset-bottom, 0px); }
+.bar{ flex:none; height:calc(var(--a-bar-h) + env(safe-area-inset-bottom, 0px)); display:flex; align-items:center; gap:14px;
+  padding:0 max(24px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(24px, env(safe-area-inset-left, 0px));
+  background:#10150A; border-top:1px solid rgba(215,179,105,.16); }
 .bar .grow{ flex:1; min-width:0; }
 .btn{ display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:0 22px; border-radius:14px;
   border:1.5px solid rgba(215,179,105,.45); background:rgba(215,179,105,.08); color:var(--a-gold-hi);
@@ -218,6 +230,74 @@ button{ font:inherit; color:inherit; }
 .toc .toc-pdf{ display:block; margin:0 24px calc(18px + env(safe-area-inset-bottom, 0px)); padding:14px 0 0; border-top:1px solid #E6DEC9; color:#7A5A1C; font-size:16px; }
 .is-m .bar .pdfl{ display:none; }
 @media (max-width:1100px){ .bar .pdfl{ display:none; } }
+
+/* ================= MOTION (web only; final states equal the PDF) ================= */
+@keyframes a-fade{ from{ opacity:0; } }
+@keyframes a-rise{ from{ opacity:0; transform:translateY(12px); } }
+@keyframes a-rise-lg{ from{ opacity:0; transform:translateY(36px); } }
+@keyframes a-reveal{ from{ opacity:0; clip-path:inset(0 0 100% 0); transform:translateY(18px); } to{ opacity:1; clip-path:inset(0 0 -20% 0); transform:none; } }
+@keyframes a-ring{ from{ opacity:0; transform:scale(1.04); } }
+@keyframes a-pulse{ 0%{ opacity:0; } 35%{ opacity:1; stroke-width:5px; stroke-opacity:.7; } 100%{ opacity:1; } }
+@keyframes a-mark{ from{ opacity:0; transform:scale(.82); } }
+@keyframes a-lit{ 0%{ transform:scale(1); background:var(--a-gold); } 40%{ transform:scale(1.22); background:#F3DDA6; } 100%{ transform:scale(1); } }
+@keyframes a-nudge{ 0%,100%{ transform:none; } 45%{ transform:translate(3px,-3px); } }
+@keyframes a-draw-x{ from{ clip-path:inset(0 100% 0 0); } to{ clip-path:inset(0 0 0 0); } }
+@keyframes a-frame{ from{ clip-path:inset(0 100% 100% 0); } to{ clip-path:inset(0 0 0 0); } }
+@keyframes a-wm{ from{ opacity:0; transform:scale(1.04); } }
+@keyframes a-scale-x{ from{ transform:scaleX(0); } }
+@keyframes a-tick{ from{ opacity:0; transform:rotate(45deg) scale(.4); } to{ opacity:1; transform:rotate(45deg) scale(1); } }
+:root{ --e:cubic-bezier(.22,1,.36,1); }
+/* spot: dim, ring, one gold pulse, markers in order, card rise + stagger, cursor nudge */
+.enter svg.ov .dim{ animation:a-fade .24s var(--e) both; }
+.enter svg.ov .ring, .enter-ring svg.ov .ring, .enter .mshot .ring{ transform-box:fill-box; transform-origin:center; animation:a-ring .38s var(--e) .14s both; }
+.enter svg.ov .halo, .enter-ring svg.ov .halo{ animation:a-pulse .9s var(--e) .3s both; }
+.enter svg.ov .lead, .enter-ring svg.ov .lead{ animation:a-fade .3s var(--e) .42s both; }
+.enter .marker, .enter-ring .marker, .enter .mshot .mk{ transform-box:fill-box; transform-origin:center; animation:a-mark .3s var(--e) calc(.4s + var(--i,0) * .14s) both; }
+.enter .card .n, .enter-ring .card .n{ animation:a-lit .5s var(--e) calc(.4s + var(--i,0) * .14s) both; }
+.enter .card{ animation:a-rise .34s var(--e) .06s both; }
+.enter .card .kicker, .enter .card h2, .enter .card .body, .enter .card .action, .enter .card .tip, .enter .card .cfoot{ animation:a-rise .3s var(--e) calc(.12s + var(--i,0) * .06s) both; }
+.enter .action .ic svg, .enter-ring .action .ic svg{ animation:a-nudge .5s var(--e) .7s both; }
+/* cover */
+.enter.cover .frame{ animation:a-frame .9s var(--e) both; }
+.enter.cover .wm{ animation:a-wm 1.2s var(--e) .1s both; }
+.enter.cover .logo{ animation:a-fade .45s var(--e) .1s both; }
+.enter.cover .kick{ animation:a-rise .4s var(--e) .2s both; }
+.enter.cover h1{ animation:a-reveal .55s var(--e) .28s both; }
+.enter.cover .sub{ animation:a-rise .4s var(--e) .46s both; }
+.enter.cover .lead{ animation:a-rise .4s var(--e) .56s both; }
+.enter.cover .hint{ animation:a-rise .4s var(--e) .66s both; }
+.enter.cover .ver{ animation:a-fade .5s var(--e) .85s both; }
+/* section divider */
+.enter.section .panel{ animation:a-fade .35s var(--e) both; }
+.enter.section .num{ animation:a-rise-lg .5s var(--e) .12s both; }
+.enter.section .plabel, .enter.section .of{ animation:a-fade .4s var(--e) .1s both; }
+.enter.section h1{ animation:a-rise .4s var(--e) .18s both; }
+.enter.section .rule{ transform-origin:left; animation:a-scale-x .45s var(--e) .3s both; }
+.enter.section .lead{ animation:a-rise .4s var(--e) .34s both; }
+.enter.section .inlist .lab{ animation:a-fade .35s var(--e) .42s both; }
+.enter.section .inlist li{ animation:a-rise .32s var(--e) calc(.48s + var(--i,0) * .07s) both; }
+/* paper kinds */
+.enter.paper .hd .kicker{ animation:a-fade .3s var(--e) both; }
+.enter.paper .hd h1{ animation:a-rise .36s var(--e) .05s both; }
+.enter.paper .hd .lead{ animation:a-rise .36s var(--e) .12s both; }
+.enter .grid .gc, .enter .cmp .col, .enter .chk li, .enter .tpl dt, .enter .tpl dd, .enter .flow .st{ animation:a-rise .34s var(--e) calc(.2s + var(--i,0) * .08s) both; }
+.enter .flow .ar svg{ animation:a-draw-x .3s var(--e) calc(.3s + var(--i,0) * .08s) both; }
+.enter .tpl .sheet, .enter .tpl .sheet2{ animation:a-fade .35s var(--e) .12s both; }
+.enter .chk .box{ position:relative; }
+.enter .chk .box::after, .chk .box.done::after{ content:""; position:absolute; left:50%; top:44%; width:28%; height:56%; margin:-28% 0 0 -14%;
+  border:solid var(--gold-deep,#B8963F); border-width:0 4px 4px 0; transform:rotate(45deg); }
+.enter .chk .box::after{ animation:a-tick .28s var(--e) calc(.45s + var(--i,0) * .1s) both; }
+.enter.paper .after{ animation:a-fade .35s var(--e) .5s both; }
+/* statement */
+.enter.statement .seal{ animation:a-fade .5s var(--e) both; }
+.enter.statement .kicker{ animation:a-fade .4s var(--e) .1s both; }
+.enter.statement h1{ animation:a-reveal .55s var(--e) .16s both; }
+.enter.statement .rule{ animation:a-scale-x .45s var(--e) .38s both; }
+.enter.statement .lead{ animation:a-rise .4s var(--e) .44s both; }
+/* chrome */
+[data-part].chg > span, [data-part].chg > i{ animation:a-fade .3s var(--e,ease-out) both; }
+.toc-open .toc .grp{ animation:a-rise .3s cubic-bezier(.22,1,.36,1) calc(.08s + var(--gi,0) * .03s) both; }
+
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
 }
@@ -225,6 +305,7 @@ button{ font:inherit; color:inherit; }
 </head>
 <body>
 
+<canvas class="bd" aria-hidden="true"></canvas><canvas class="bd" aria-hidden="true"></canvas><canvas class="bd edge" aria-hidden="true"></canvas><canvas class="bd edge" aria-hidden="true"></canvas>
 <div class="app" id="app">
   <div class="progress" aria-hidden="true"><i id="progressFill"></i></div>
   <header class="top">
@@ -267,10 +348,10 @@ button{ font:inherit; color:inherit; }
 
 <div class="sr" aria-live="polite" id="live"></div>
 
-<script>window.DG_WEB = true; window.DG_LOGO = 'img/logo.svg';</script>
-<script src="js/shots.js"></script>
-<script src="js/storyboard.js"></script>
-<script src="js/render.js"></script>
-<script src="js/app.js"></script>
+<script>window.DG_WEB = true; window.DG_LOGO = 'img/logo.svg?v=9ba6aadc6e';</script>
+<script src="js/shots.js?v=9ba6aadc6e"></script>
+<script src="js/storyboard.js?v=9ba6aadc6e"></script>
+<script src="js/render.js?v=9ba6aadc6e"></script>
+<script src="js/app.js?v=9ba6aadc6e"></script>
 </body>
 </html>
