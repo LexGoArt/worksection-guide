@@ -222,7 +222,7 @@
         (s.body ? '<div class="lead">' + rich(s.body) + '</div>' : '') +
       '</div>' +
       '<div class="hint"><span class="keys"><span class="key">' + ICON.left + '</span><span class="key">' + ICON.right + '</span></span>' +
-        (bodyHasHint ? '' : '<span>Гортайте стрілками → ←</span>') + '</div>' +
+        (bodyHasHint ? '' : '<span>Гортайте стрілками</span>') + '</div>' +
       '<div class="ver">' + esc([m.version ? 'Версія ' + m.version : '', m.date || ''].filter(Boolean).join(' · ')) + '</div>';
     return n;
   };
