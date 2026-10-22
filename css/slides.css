@@ -263,3 +263,12 @@ b,strong{ font-weight:650; color:var(--ink); }
 /* balanced line breaks: no orphan last word on short texts */
 .cover .sub, .cover .lead, .section .lead, .paper .hd .lead, .statement .lead, .flow .sub, .grid .gc h3, .grid .gc .gs{ text-wrap:balance; }
 .card .body, .tip, .action, .cmp li, .grid .gc li, .tpl dd{ text-wrap:pretty; }
+/* list items that start with a numbered badge: the badge replaces the bullet dot */
+.card .body li:has(> span.n:first-child){ padding-left:0; }
+.card .body li:has(> span.n:first-child)::before{ display:none; }
+.card .body p{ margin:0 0 .35em; }
+/* numbered lists in cards: gold number instead of the dot, a bit more air between items */
+.card .body ol{ margin:.3em 0 0; padding:0; list-style:none; counter-reset:i; }
+.card .body ol li{ counter-increment:i; padding-left:34px; }
+.card .body ol li::before{ content:counter(i) "."; background:none; width:auto; height:auto; border-radius:0; top:0; left:2px; font-weight:800; color:var(--gold-deep); }
+.card .body li{ margin:.4em 0; }
