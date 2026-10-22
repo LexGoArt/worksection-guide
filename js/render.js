@@ -193,9 +193,9 @@
       if (z < 1) { warn(warnId, 'content shrunk to ' + Math.round(z * 100) + '%' + (z <= .78 ? ' (STILL OVERFLOWS)' : '')); return; }
       // sparse slide: grow content (up to +28%) so short lists read larger
       var inner = c.firstElementChild;
-      while (z < 1.28) {
+      while (z < 1.5) {
         inner.style.zoom = z + .04;
-        if (c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1 || inner.getBoundingClientRect().height > c.clientHeight * .82) { inner.style.zoom = z; break; }
+        if (c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1 || inner.getBoundingClientRect().height > c.clientHeight * .9) { inner.style.zoom = z; break; }
         z += .04;
       }
     };
@@ -342,6 +342,7 @@
   var FH = 1024;                // frame height (band below)
   var SMAX = 1.75;              // max magnification vs. native screenshot pixels
   var GUT = 40;
+  var CW = 640;                 // ONE card width for every spot slide
   var DIM = .70;
 
   function rr(r, rad) {
@@ -371,10 +372,11 @@
     // ---- card content
     var sec = ctx.sec || { num: '', title: '' };
     var dots = ''; for (var d = 1; d <= (s._m || 1); d++) dots += '<i class="' + (d === s._k ? 'on' : d < s._k ? 'past' : '') + '"></i>';
-    var kick = '<div class="kicker"><span class="chip"></span>Частина ' + esc(sec.num) + ' · Крок ' + (s._k || 1) + ' <span class="lc">з</span> ' + (s._m || 1) + '</div>';
+    var single = (s._m || 1) <= 1;   // a part with one step: no «Крок 1 з 1», no dots
+    var kick = '<div class="kicker"><span class="chip"></span>Частина ' + esc(sec.num) + (single ? '' : ' · Крок ' + (s._k || 1) + ' <span class="lc">з</span> ' + (s._m || 1)) + '</div>';
     var title = '<h2>' + rich(s.title) + '</h2>';
     var body = s.body ? '<div class="body">' + rich(s.body) + '</div>' : '';
-    var foot = '<div class="cfoot"><div class="dots">' + dots + '</div></div>';
+    var foot = single ? '' : '<div class="cfoot"><div class="dots">' + dots + '</div></div>';
     var STD = kick + title + body + actionHTML(s) + tipHTML(s) + foot;
     var WIDE = '<div class="colA">' + kick + title + foot + '</div><div class="colB">' + body + actionHTML(s) + tipHTML(s) + '</div>';
     var card = el('div', 'card');
@@ -407,7 +409,10 @@
       function clash(hs) { for (var i = 0; i < hs.length; i++) for (var j = i + 1; j < hs.length; j++) if (hit(inflate(hs[i], RING + 3), inflate(hs[j], RING + 3))) return true; return false; }
       while (clash(holes) && pad > 2) { pad -= 2; holes = mk(pad); }
       var raw = T;
-      return { holes: holes, raw: raw, rings: holes.map(function (h) { return inflate(h, RING + 2); }) };
+      // optional s.avoid: other targets of the shot that number markers must not cover
+      var avoid = (s.avoid || []).map(function (k) { return shot.targets && shot.targets[k]; }).filter(Boolean)
+        .map(function (t) { return { x: img.x + t[0] * img.w, y: img.y + t[1] * img.h, w: t[2] * img.w, h: t[3] * img.h }; });
+      return { holes: holes, raw: raw, avoid: avoid, rings: holes.map(function (h) { return inflate(h, RING + 2); }) };
     }
     function camera(view, iw, ih, fx, fy) {   // place image so native point U-centre lands at (fx, fy), image always covering the view
       var ucx = (U.x + U.w / 2) / nw * iw, ucy = (U.y + U.h / 2) / nh * ih;
@@ -428,19 +433,25 @@
       var side = (pos === 'left' || pos === 'right') ? pos : (mcx >= .5 ? 'right' : 'left');   // side of the CARD
       var view, img;
       if (mode === 'side') {
-        var colMax = W - 860;
+        // tall / square screen: framed like the inset one, screen + card centred as one group
+        var colMax = W - (CW + 80 + 48);
         var iw = nw * S, ih = nh * S, cw = Math.min(iw, colMax);
-        view = { x: side === 'right' ? 0 : W - cw, y: 0, w: cw, h: Math.min(ih, FH) };
+        var gx = Math.max(24, (W - (cw + 80 + CW)) / 2);
+        view = { x: side === 'right' ? gx : gx + CW + 80, y: 0, w: cw, h: Math.min(ih, FH - 48) };
         view.y = (FH - view.h) / 2;
         img = camera(view, iw, ih, view.x + view.w / 2, view.y + view.h / 2);
       } else {
-        var w2 = Math.round(W * .64), h2 = w2 * nh / nw;
-        if (h2 > FH - 2 * GUT) { h2 = FH - 2 * GUT; w2 = h2 * nw / nh; }
-        view = { x: side === 'right' ? GUT : W - GUT - w2, y: (FH - h2) / 2, w: w2, h: h2 };
-        img = { x: view.x, y: view.y, w: w2, h: h2 }; S = w2 / nw;
+        // framed screen beside the card; zoomed in (cropped) on the target when that keeps it <= 60 % of the slide
+        var w2 = Math.round(W * .62), Sfit2 = w2 / nw;
+        var Sz = Math.max(Sfit2, Math.min(2.4, S || 0));
+        var iw2 = nw * Sz, ih2 = nh * Sz, h2 = Math.min(ih2, FH - 2 * GUT);
+        if (Sz === Sfit2 && ih2 > FH - 2 * GUT) { h2 = FH - 2 * GUT; w2 = h2 * nw / nh; iw2 = w2; ih2 = h2; Sz = w2 / nw; }
+        var gx2 = Math.max(24, (W - (w2 + 56 + CW)) / 2);
+        view = { x: side === 'right' ? gx2 : gx2 + CW + 56, y: (FH - h2) / 2, w: w2, h: h2 };
+        img = camera(view, iw2, ih2, view.x + view.w / 2, view.y + view.h / 2); S = Sz;
       }
       var g = holesFor(view, img, S); g.mode = mode; g.view = view; g.img = img; g.side = side; g.S = S;
-      g.radius = mode === 'inset' ? 16 : 0;
+      g.radius = 16;   // side and inset share one framed look
       g.fx = side === 'right' ? view.x + view.w : 0; g.fw = side === 'right' ? W - g.fx : view.x;
       return g;
     }
@@ -455,7 +466,7 @@
 
     function draw(G) {
       var v = G.view, img = G.img;
-      var wrap = el('div', 'viewport' + (G.mode === 'inset' ? ' inset' : ''));
+      var wrap = el('div', 'viewport' + (G.radius ? ' inset' : ''));
       wrap.style.cssText = 'left:' + v.x + 'px;top:' + v.y + 'px;width:' + v.w + 'px;height:' + v.h + 'px';
       var im = el('img', 'shot'); im.src = shot.file; im.alt = '';
       im.style.cssText = 'left:' + (img.x - v.x) + 'px;top:' + (img.y - v.y) + 'px;width:' + img.w + 'px;height:' + img.h + 'px';
@@ -466,8 +477,8 @@
       }
       var dPath = (G.radius ? rr(v, G.radius) : 'M' + v.x + ' ' + v.y + 'H' + (v.x + v.w) + 'V' + (v.y + v.h) + 'H' + v.x + 'Z') + cut.map(function (h) { return rr(h, 12); }).join('');
       var edge = '';
-      if (G.mode === 'inset') edge = '<path d="' + rr(inflate(v, .5), G.radius + .5) + '" fill="none" stroke="#D7B369" stroke-opacity=".4" stroke-width="1"/>';
-      if (G.mode === 'side') { var ex = G.side === 'right' ? v.x + v.w : v.x; edge = '<line x1="' + ex + '" y1="' + v.y + '" x2="' + ex + '" y2="' + (v.y + v.h) + '" stroke="#D7B369" stroke-opacity=".4" stroke-width="1"/>'; }
+      if (G.radius) edge = '<path d="' + rr(inflate(v, .5), G.radius + .5) + '" fill="none" stroke="#D7B369" stroke-opacity=".4" stroke-width="1"/>';
+      if (false) { var ex = G.side === 'right' ? v.x + v.w : v.x; edge = '<line x1="' + ex + '" y1="' + v.y + '" x2="' + ex + '" y2="' + (v.y + v.h) + '" stroke="#D7B369" stroke-opacity=".4" stroke-width="1"/>'; }
       // rings: the faint halo is clipped to the view so it never runs off the screen edge
       var cid = 'v' + ctx.i;
       var svg = '<svg class="ov" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="' + cid + '"><rect x="' + v.x + '" y="' + v.y + '" width="' + v.w + '" height="' + v.h + '"/></clipPath></defs>' +
@@ -500,13 +511,13 @@
       var B0 = { x: 56, y: 48, w: W - 112, h: FH - 48 - 32 };   // card bounds inside the frame
 
       function placeSide(G) {
-        var cw = Math.min(720, G.fw - GUT - 100);
-        var ch = measure(cw, 'std');
+        var cw = CW, ch = measure(cw, 'std');
         var Bu = G.rings.length ? union(G.rings) : { x: 0, y: FH / 2, w: 0, h: 0 };
         var y = clamp(Bu.y + Bu.h / 2 - ch / 2, B0.y, B0.y + B0.h - ch);
         if (ch > B0.h) y = (FH - ch) / 2;
-        var cx = G.side === 'right' ? G.fx + G.fw - GUT - cw : G.fx + GUT;
-        if (G.fw - cw < 2 * GUT + 100) cx = G.fx + (G.fw - cw) / 2;
+        var gap = G.mode === 'inset' ? 56 : 80;   // room for the connector / a number marker
+        var cx = G.side === 'right' ? G.view.x + G.view.w + gap : G.view.x - gap - cw;
+        cx = clamp(cx, 24, W - 24 - cw);
         return { x: cx, y: y, w: cw, h: ch, v: 'std', side: G.side };
       }
 
@@ -515,7 +526,7 @@
         var bounds = B0;
         function inside(r) { return r.x >= bounds.x - .5 && r.y >= bounds.y - .5 && r.x + r.w <= bounds.x + bounds.w + .5 && r.y + r.h <= bounds.y + bounds.h + .5; }
         function free(r) { return inside(r) && !avoid.some(function (a) { return hit(a, r); }); }
-        if (!avoid.length) { var h0 = measure(680, 'std'); return { x: (W - 680) / 2, y: (FH - h0) / 2, w: 680, h: h0, v: 'std', side: 'center' }; }
+        if (!avoid.length) { var h0 = measure(CW, 'std'); return { x: (W - CW) / 2, y: (FH - h0) / 2, w: CW, h: h0, v: 'std', side: 'center' }; }
         var B2 = union(avoid);
         var space = { right: bounds.x + bounds.w - (B2.x + B2.w), left: B2.x - bounds.x, below: bounds.y + bounds.h - (B2.y + B2.h), above: B2.y - bounds.y };
         var order = ['right', 'left', 'below', 'above'].sort(function (a, b) {
@@ -525,9 +536,7 @@
         var map = { left: 'left', right: 'right', top: 'above', bottom: 'below' };
         if (map[pos]) order = [map[pos]].concat(order.filter(function (o) { return o !== map[pos]; }));
         function tryAt(anchor, sd) {
-          var opts = (sd === 'left' || sd === 'right')
-            ? [[680, 'std'], [620, 'std'], [740, 'std'], [560, 'std']]
-            : [[680, 'std'], [760, 'std'], [1180, 'wide'], [1420, 'wide'], [1640, 'wide'], [bounds.w, 'wide']];
+          var opts = [[CW, 'std']];
           var cx = anchor.x + anchor.w / 2, cy = anchor.y + anchor.h / 2;
           for (var j = 0; j < opts.length; j++) {
             var wd = Math.min(opts[j][0], bounds.w), hh = measure(wd, opts[j][1]), r;
@@ -537,19 +546,20 @@
             if (sd === 'above') r = { x: clamp(cx - wd / 2, bounds.x, bounds.x + bounds.w - wd), y: anchor.y - hh };
             r.w = wd; r.h = hh; r.v = opts[j][1]; r.side = sd;
             if (free(r)) return r;
+            // slide along the target only while the card still faces it (stays adjacent)
             if (sd === 'left' || sd === 'right') {
-              for (var yy = bounds.y; yy <= bounds.y + bounds.h - hh; yy += 12) { var r2 = { x: r.x, y: yy, w: wd, h: hh, v: r.v, side: sd }; if (free(r2)) return r2; }
+              for (var yy = Math.max(bounds.y, anchor.y - hh + 60); yy <= Math.min(bounds.y + bounds.h - hh, anchor.y + anchor.h - 60); yy += 12) { var r2 = { x: r.x, y: yy, w: wd, h: hh, v: r.v, side: sd }; if (free(r2)) return r2; }
             } else {
-              for (var xx = bounds.x; xx <= bounds.x + bounds.w - wd; xx += 12) { var r3 = { x: xx, y: r.y, w: wd, h: hh, v: r.v, side: sd }; if (free(r3)) return r3; }
+              for (var xx = Math.max(bounds.x, anchor.x - wd + 80); xx <= Math.min(bounds.x + bounds.w - wd, anchor.x + anchor.w - 80); xx += 12) { var r3 = { x: xx, y: r.y, w: wd, h: hh, v: r.v, side: sd }; if (free(r3)) return r3; }
             }
           }
           return null;
         }
         var chosen = null;
-        if (pos === 'center') { var hc = measure(760, 'std'); chosen = { x: (W - 760) / 2, y: (FH - hc) / 2, w: 760, h: hc, v: 'std', side: 'center' }; }
+        if (pos === 'center') { var hc = measure(CW, 'std'); chosen = { x: (W - CW) / 2, y: (FH - hc) / 2, w: CW, h: hc, v: 'std', side: 'center' }; }
         for (var oi = 0; !chosen && oi < order.length; oi++) chosen = tryAt(B2, order[oi]);
         for (var hi = 0; !chosen && hi < avoid.length; hi++) for (var oj = 0; !chosen && oj < order.length; oj++) chosen = tryAt(avoid[hi], order[oj]);
-        if (!chosen && scan) {
+        if (!chosen && scan && false) {   // no free-floating cards: adjacent placement or a different framing
           var best = null, bc = { x: B2.x + B2.w / 2, y: B2.y + B2.h / 2 };
           [[680, 'std'], [560, 'std'], [1180, 'wide'], [1640, 'wide']].forEach(function (o) {
             var hh = measure(o[0], o[1]);
@@ -569,11 +579,15 @@
       var G = null, chosen = null;
       var Sfit = Math.max(W / nw, FH / nh);
       if (aspect >= 1.6 && s.layout !== 'inset') {
-        var tiny = tg.every(function (t) { return t[3] * nh < 34; });
-        var Shi = s.zoom ? Math.max(Sfit, s.zoom * Sfit) : Math.max(Sfit, tiny ? 2.2 : SMAX);
+        // legibility: each hole >= ~160x60 px (target + padding), never past 2.4x native pixels;
+        // a huge target stays <= 60 % of the frame (beyond that: smaller screen beside the card)
+        var Sneed = tg.reduce(function (a, t) { return Math.max(a, Math.max(136 / Math.max(1, t[2] * nw), 36 / Math.max(1, t[3] * nh))); }, 0);
+        var Scap = Math.min(.6 * W / Math.max(1, U.w), .6 * FH / Math.max(1, U.h));
+        var Shi = s.zoom ? Math.max(Sfit, s.zoom * Sfit) : Math.max(Sfit, Math.min(2.4, Math.max(SMAX, Sneed), Scap));
+        var huge = !s.zoom && tg.some(function (t) { return t[2] * nw * Sfit > .68 * W || t[3] * nh * Sfit > .68 * FH; });
         var hints = mcx >= .5 ? ['left', 'right', 'c'] : ['right', 'left', 'c'];
         var vys = ['c', 't', 'b'];
-        for (var S = Shi; !chosen && S >= Sfit - .001; S = (S - .08 < Sfit && S > Sfit + .001) ? Sfit : S - .08) {
+        for (var S = Shi; !huge && !chosen && S >= Sfit - .001; S = (S - .08 < Sfit && S > Sfit + .001) ? Sfit : S - .08) {
           for (var hk = 0; hk < hints.length && !chosen; hk++) for (var vk = 0; vk < vys.length && !chosen; vk++) {
             var g = geomFull(S, hints[hk], vys[vk]);
             if (!visibleOK(g)) continue;
@@ -582,13 +596,14 @@
           }
           if (s.zoom && !chosen && S <= Sfit + .001) break;
         }
-        if (!chosen) { G = geomSide('inset'); chosen = placeSide(G); }   // big targets: shrink the screen, card beside it
+        if (!chosen) { G = geomSide('inset', Math.min(.6 * W / Math.max(1, U.w), .6 * FH / Math.max(1, U.h))); chosen = placeSide(G); }   // big targets: framed screen beside the card
       } else if (aspect >= 1.6) {
-        G = geomSide('inset'); chosen = placeSide(G);
+        G = geomSide('inset', Math.min(.6 * W / Math.max(1, U.w), .6 * FH / Math.max(1, U.h))); chosen = placeSide(G);
       } else {
         // tall / square shot: column; zoom while the targets still fit the column
-        var S0 = FH / nh, Sbest = S0, colMax = W - 860;
-        for (var S2 = Math.max(S0, SMAX); S2 > S0; S2 -= .05) {
+        var S0 = FH / nh, Sbest = S0, colMax = W - (CW + 80 + 48);
+        var SneedC = tg.reduce(function (a, t) { return Math.max(a, Math.max(136 / Math.max(1, t[2] * nw), 36 / Math.max(1, t[3] * nh))); }, 0);
+        for (var S2 = Math.max(S0, Math.min(2.4, Math.max(SMAX, SneedC))); S2 > S0; S2 -= .05) {
           if (U.w * S2 <= Math.min(nw * S2, colMax) - 120 && U.h * S2 <= FH - 160) { Sbest = S2; break; }
         }
         if (s.zoom) Sbest = Math.max(S0, Math.min(Sbest, S0 * s.zoom));
@@ -612,9 +627,11 @@
         if (want && chosen.side !== want) warn(s.id, 'cardPos=' + pos + ' did not fit, used ' + chosen.side);
       }
 
-      // ---- leader line (single target)
-      if (rings.length === 1) {
-        var gl = n.querySelector('g.lead'), R0 = inflate(holes[0], RING), pts = null;
+      // ---- connector from the card to the nearest target (always)
+      if (rings.length >= 1) {
+        var ccx = C.x + C.w / 2, ccy = C.y + C.h / 2, near = 0, nd = Infinity;
+        holes.forEach(function (h, hi2) { var d2 = Math.hypot(h.x + h.w / 2 - ccx, h.y + h.h / 2 - ccy); if (d2 < nd) { nd = d2; near = hi2; } });
+        var gl = n.querySelector('g.lead'), R0 = inflate(holes[near], RING), pts = null;
         var rcx = R0.x + R0.w / 2, rcy = R0.y + R0.h / 2;
         if (C.x >= R0.x + R0.w && rcy > C.y + 28 && rcy < C.y + C.h - 28) pts = [[C.x, rcy], [R0.x + R0.w, rcy]];
         else if (C.x + C.w <= R0.x && rcy > C.y + 28 && rcy < C.y + C.h - 28) pts = [[C.x + C.w, rcy], [R0.x, rcy]];
@@ -667,6 +684,7 @@
             cost += overlapArea(inflate(C, 10), mr) * 20;
             G.holes.forEach(function (o, j) { if (j !== idx) cost += overlapArea(inflate(o, RING + 3), mr) * 10; });
             G.raw.forEach(function (o) { cost += overlapArea(o, mr) * 10; });   // never on target content (own included)
+            (G.avoid || []).forEach(function (o) { cost += overlapArea(inflate(o, 6), mr) * 10; });   // nor on buttons the slide asks to keep clear
             placed.forEach(function (p) { cost += overlapArea(inflate(p, 8), mr) * 20; });
             if (!best || cost < best.cost) { best = mr; best.cost = cost; best.line = c.line || null; }
           });
