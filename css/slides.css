@@ -272,3 +272,6 @@ b,strong{ font-weight:650; color:var(--ink); }
 .card .body ol li{ counter-increment:i; padding-left:34px; }
 .card .body ol li::before{ content:counter(i) "."; background:none; width:auto; height:auto; border-radius:0; top:0; left:2px; font-weight:800; color:var(--gold-deep); }
 .card .body li{ margin:.4em 0; }
+/* two-column plain list in a card (e.g. list of cabinets) */
+.card .body ul.cols2{ columns:2; column-gap:26px; }
+.card .body ul.cols2 li{ break-inside:avoid; margin:.18em 0; }
