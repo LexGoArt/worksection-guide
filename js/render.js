@@ -295,7 +295,7 @@
 
   R.grid = function (s, ctx) {
     var it = (s.items || []).slice(0, 6), n = it.length;
-    var cols = n <= 4 ? n : 3;
+    var cols = s.columns || (n <= 4 ? n : 3);
     var h = '<div class="grid" style="--cols:' + cols + '">' + it.map(function (x) {
       return '<div class="gc" style="--c:' + (SEC[x.color] || FLOW[x.color] || SEC.gold) + ';--ct:' + textTone(SEC[x.color] || FLOW[x.color] || SEC.gold) + '"><h3>' + rich(x.title) + '</h3>' +
         (x.sub ? '<div class="gs">' + rich(x.sub) + '</div>' : '') +
