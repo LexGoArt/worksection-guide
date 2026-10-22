@@ -275,3 +275,7 @@ b,strong{ font-weight:650; color:var(--ink); }
 /* two-column plain list in a card (e.g. list of cabinets) */
 .card .body ul.cols2{ columns:2; column-gap:26px; }
 .card .body ul.cols2 li{ break-inside:avoid; margin:.18em 0; }
+/* label + list groups, divided */
+.card .body p.lbl{ font:700 20px/1.3 var(--f-head); letter-spacing:.06em; text-transform:uppercase; color:var(--gold-deep); margin:0 0 .1em; }
+.card .body ul + p.lbl, .card .body ol + p.lbl{ margin-top:.7em; padding-top:.6em; border-top:1px solid var(--line); }
+.card .body p.lbl + p{ color:var(--ink); }
