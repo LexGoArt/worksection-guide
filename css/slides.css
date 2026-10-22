@@ -279,3 +279,7 @@ b,strong{ font-weight:650; color:var(--ink); }
 .card .body p.lbl{ font:700 20px/1.3 var(--f-head); letter-spacing:.06em; text-transform:uppercase; color:var(--gold-deep); margin:0 0 .1em; }
 .card .body ul + p.lbl, .card .body ol + p.lbl{ margin-top:.7em; padding-top:.6em; border-top:1px solid var(--line); }
 .card .body p.lbl + p{ color:var(--ink); }
+/* grid card: labelled groups */
+.grid .gc .gg{ margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+.grid .gc .gl{ font:700 17px/1.3 var(--f-head); letter-spacing:.06em; text-transform:uppercase; color:var(--ct,var(--c)); }
+.grid .gc .gg ul{ margin:10px 0 0; padding:0; border-top:0; gap:8px; }

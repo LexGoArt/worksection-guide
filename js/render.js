@@ -299,7 +299,8 @@
     var h = '<div class="grid" style="--cols:' + cols + '">' + it.map(function (x) {
       return '<div class="gc" style="--c:' + (SEC[x.color] || FLOW[x.color] || SEC.gold) + ';--ct:' + textTone(SEC[x.color] || FLOW[x.color] || SEC.gold) + '"><h3>' + rich(x.title) + '</h3>' +
         (x.sub ? '<div class="gs">' + rich(x.sub) + '</div>' : '') +
-        ((x.list && x.list.length) ? '<ul>' + x.list.map(function (l) { return '<li>' + rich(l) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
+        ((x.list && x.list.length) ? '<ul>' + x.list.map(function (l) { return '<li>' + rich(l) + '</li>'; }).join('') + '</ul>' : '') +
+        (x.groups || []).map(function (g) { return '<div class="gg"><div class="gl">' + rich(g.label) + '</div><ul>' + g.list.map(function (l) { return '<li>' + rich(l) + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
     }).join('') + '</div>';
     return paper(s, ctx, 'k-grid', h);
   };
