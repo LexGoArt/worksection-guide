@@ -69,7 +69,7 @@
   };
 
   function actionHTML(s) { return s.action ? '<div class="action"><span class="ic">' + ICON.pointer + '</span><span>' + rich(s.action) + '</span></div>' : ''; }
-  function tipHTML(s) { return s.tip ? '<div class="tip"><span class="ic">i</span><span>' + rich(s.tip) + '</span></div>' : ''; }
+  function tipHTML(s) { return s.tip ? '<div class="tip' + (s.tipWarn ? ' warn' : '') + '"><span class="ic">i</span><span>' + rich(s.tip) + '</span></div>' : ''; }
 
   /* ---------------- boot ----------------
      PDF (render.html): loads the storyboard named in ?story= and renders into #deck.
