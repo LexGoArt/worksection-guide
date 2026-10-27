@@ -210,7 +210,6 @@
     var sub = s.subtitle || m.subtitle || '';
     function plain(t) { return String(t || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
     if (sub && s.body && plain(s.body).indexOf(plain(sub)) >= 0) sub = '';
-    var bodyHasHint = /Гортайте/i.test(s.body || '');
     n.innerHTML =
       '<div class="frame"></div>' +
       '<div class="wm"><img src="' + LOGO + '" alt=""></div>' +
@@ -220,10 +219,7 @@
         '<h1>' + rich(s.title || m.title || '') + '</h1>' +
         (sub ? '<div class="sub">' + rich(sub) + '</div>' : '') +
         (s.body ? '<div class="lead">' + rich(s.body) + '</div>' : '') +
-      '</div>' +
-      '<div class="hint"><span class="keys"><span class="key">' + ICON.left + '</span><span class="key">' + ICON.right + '</span></span>' +
-        (bodyHasHint ? '' : '<span>Гортайте стрілками</span>') + '</div>' +
-      '<div class="ver">' + esc([m.version ? 'Версія ' + m.version : '', m.date || ''].filter(Boolean).join(' · ')) + '</div>';
+      '</div>';
     return n;
   };
 
