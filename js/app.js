@@ -18,6 +18,9 @@
   var live = document.getElementById('live');
   var toc = document.getElementById('toc'), tocBack = document.getElementById('tocBack'), tocList = document.getElementById('tocList');
   var resume = document.getElementById('resume');
+  var osHint = document.getElementById('osHint'), osTimer = 0;
+  var OS_URL = 'https://lexgoart.github.io/dobrograd-os/uk/', SEEN_END = 'dg-ws-guide-seen-end';
+  var nextHtml = nextBtn.innerHTML;
 
   var nodes = [], slides = [], cur = -1, total = 0, wide = true, anim = null, lastFocus = null;
   var bds = [].slice.call(document.querySelectorAll('canvas.bd:not(.edge)')), tops = [].slice.call(document.querySelectorAll('canvas.bd.edge')), bdi = 0, bdTimer = 0, st = { k: 1, x: 0, y: 0 };
@@ -94,13 +97,14 @@
     if (cur >= 0) paintBackdrop(nodes[cur], true);
   }
   function fit() {
-    if (!wide) { deck.style.transform = ''; return; }
+    if (!wide) { deck.style.transform = ''; placeHint(); return; }
     var vw = view.clientWidth, vh = view.clientHeight;
     var k = Math.min(vw / W, vh / H);
     k = Math.floor(W * k) / W;                       // whole-pixel stage width: no anti-aliased seam at the edges
     var x = Math.round((vw - W * k) / 2), y = Math.round((vh - H * k) / 2);
     st.k = k; st.x = x; st.y = y;
     deck.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k + ')';
+    placeHint();
   }
 
   /* ---------------- navigation ---------------- */
@@ -135,7 +139,11 @@
   }
   function updateUi() {
     prevBtn.disabled = cur <= 0;
-    nextBtn.disabled = cur >= total - 1;
+    var atEnd = cur >= total - 1;
+    nextBtn.disabled = false;
+    if (atEnd) { seenEnd(true); nextBtn.innerHTML = 'На початок'; nextBtn.setAttribute('aria-label', 'На початок інструкції'); }
+    else { nextBtn.innerHTML = nextHtml; nextBtn.setAttribute('aria-label', 'Наступний крок'); }
+    coverHint();
     countEl.innerHTML = (cur + 1) + ' <span class="of">/ ' + total + '</span>';
     countEl.setAttribute('aria-label', 'Крок ' + (cur + 1) + ' з ' + total);
     fill.style.width = (total > 1 ? (cur / (total - 1)) * 100 : 100) + '%';
@@ -154,7 +162,25 @@
   }
 
   prevBtn.addEventListener('click', function () { go(cur - 1); });
-  nextBtn.addEventListener('click', function () { go(cur + 1); });
+  nextBtn.addEventListener('click', function () { go(cur >= total - 1 ? 0 : cur + 1); });
+
+  /* ---------------- quiet way to the construction-block site ----------------
+     Shown only to someone who has read to the end: back on the cover, a small link fades in after a pause. */
+  function seenEnd(set) {
+    try { if (set) { window.localStorage.setItem(SEEN_END, '1'); return true; } return window.localStorage.getItem(SEEN_END) === '1'; } catch (e) { return !!set; }
+  }
+  function placeHint() {   // on the stage: where the cover once said «Гортайте стрілками», aligned with the title
+    var s = osHint.style;
+    if (!wide) { s.left = s.top = s.fontSize = ''; return; }
+    s.left = Math.round(st.x + 160 * st.k) + 'px';
+    s.top = Math.round(st.y + 940 * st.k) + 'px';
+    s.fontSize = Math.max(13, Math.round(24 * st.k)) + 'px';
+  }
+  function coverHint() {
+    clearTimeout(osTimer);
+    if (cur !== 0 || !seenEnd()) { osHint.classList.remove('on'); osHint.tabIndex = -1; return; }
+    osTimer = setTimeout(function () { if (cur === 0) { osHint.classList.add('on'); osHint.tabIndex = 0; } }, reduce ? 0 : 3000);
+  }
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (app.classList.contains('toc-open')) { if (e.key === 'Escape') closeToc(); return; }
@@ -198,6 +224,7 @@
       html += '<button class="it" type="button" data-i="' + i + '"><span class="no">' + (i + 1) + '</span><span>' + esc(titleOf(i)) + '</span></button>';
     });
     if (open) html += '</div>';
+    html += '<a class="toc-os" href="' + OS_URL + '" target="_blank" rel="noopener">Регламенти будівельного блоку</a>';
     tocList.innerHTML = html;
     tocList.addEventListener('click', function (e) {
       var b = e.target.closest('button.it'); if (!b) return;
