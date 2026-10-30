@@ -354,6 +354,8 @@
     var shot = ctx.SHOTS[s.shot];
     if (!shot) { warn(s.id, 'unknown shot ' + s.shot); return errSlide(s, 'Немає скріну «' + s.shot + '»'); }
     var sz = ctx.sizes[shot.file] || { w: 1456, h: 819 };
+    // скріни у високій роздільності (2912×1638, склейка 2x) рахуємо в базовій сітці 1456 px — розмітка та ж, картинка чіткіша
+    if (sz.w > 1456) sz = { w: 1456, h: Math.round(sz.h * 1456 / sz.w) };
     var nw = sz.w, nh = sz.h, aspect = nw / nh;
     var keys = (Array.isArray(s.spot) ? s.spot : (s.spot ? [s.spot] : [])).slice(0, 3);
     var tg = keys.map(function (key) { var t = shot.targets && shot.targets[key]; if (!t) warn(s.id, 'unknown target ' + key + ' in ' + s.shot); return t; }).filter(Boolean);
